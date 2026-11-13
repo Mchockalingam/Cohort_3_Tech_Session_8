@@ -1,14 +1,13 @@
 # Model Context Protocol (MCP): Architecture, Server Engineering and Agent Integration
 
-**Intermediate technical workshop | Duration: 120 minutes | Audience: AI engineers, solution architects, platform engineers, agentic AI developers**  
-**Prepared: 12 November 2026 | Baseline: MCP specification `2026-07-28` | Language: Python 3.11+**
+**Baseline: MCP specification `2026-07-28` | Language: Python 3.11+**
 
 > **Version note.** This workshop deliberately targets the newer MCP specification and official Python SDK v2. You will also learn to recognise the 2025-era, handshake/session-based design because some production servers, blog examples and older clients still use it. The workshop's LangChain examples use `langchain.mcp.MCPAdapter`, introduced in the 2026 integration, rather than the legacy `langchain_mcp_adapters.client.MultiServerMCPClient` API. SDK code examples are based on published APIs, but dependency installation and a model-backed end-to-end run could not be verified in the preparation environment; see the verification statement in `README.md`.
 
 ## 1. Workshop outcomes and prerequisites
 
 ### Learning outcomes
-By the end, participants should be able to:
+By the end, you should be able to:
 
 1. Explain **MCP host**, **MCP client**, **MCP server**, a model provider, and the underlying enterprise APIs without confusing their responsibilities.
 2. Draw the logical and deployment architectures for one-agent/many-server designs, and map trust boundaries.
@@ -22,26 +21,6 @@ By the end, participants should be able to:
 **Prerequisite knowledge:** Python async basics, decorators, type hints, JSON APIs, HTTP, OAuth concepts, LLM function/tool calling, and introductory LangChain/LangGraph. No knowledge of MCP internals is assumed.
 
 **Required software:** Python 3.11+, virtual environment or `uv`, terminal and editor. Optional: Node.js for MCP Inspector; OpenAI API key for agent demonstrations. The no-LLM protocol lab does **not** need an API key.
-
-### Suggested two-hour delivery plan
-
-| Time | Duration | Segment | Instructor demonstration / participant output |
-|---|---:|---|---|
-| 00:00–00:10 | 10 min | MCP problem statement and system boundaries | Contrast API integration, tool calling and MCP |
-| 00:10–00:25 | 15 min | Reference architecture and data flow | Draw host → client → servers → business systems |
-| 00:25–00:40 | 15 min | Primitives and JSON-RPC internals | Inspect tool schemas, error and resource responses |
-| 00:40–00:55 | 15 min | Protocol revisions, transport, lifecycle, security envelope | Compare 2025 and 2026 flow; reason about HTTP headers |
-| 00:55–01:00 | 5 min | Break | Setup verification |
-| 01:00–01:20 | 20 min | Lab 1: design and implement MCP servers | Run `incident_server.py`; inspect tools/resources/prompts |
-| 01:20–01:35 | 15 min | Lab 2: protocol-level client and transport | Run `client_inspect.py` over stdio and local HTTP |
-| 01:35–01:50 | 15 min | Lab 3: agent integration and orchestration | Run single-server and two-server agents |
-| 01:50–01:58 | 8 min | Security, observability and production architecture | Review threat scenarios and deployment gates |
-| 01:58–02:00 | 2 min | Homework and exit question | Assign exercise and grading rubric |
-| **Total** | **120 min** | | |
-
-**Facilitator guidance:** The security and deployment sections below are more comprehensive than can be discussed in eight minutes. Assign them as pre-reading or use them during Q&A. Treat live agent inference as a demonstration, not a strict timing dependency: model latency and tool retries vary.
-
----
 
 ## 2. What problem does MCP solve? (00:00–00:10)
 
@@ -71,7 +50,7 @@ Agent B -- custom connector --> Service X                              +-------+
 
 **The important boundary:** MCP is the interoperability layer. An agent runtime is still responsible for orchestration, and the enterprise is still responsible for authorisation and risk controls. MCP server credentials must not silently become an agent's unlimited authority.
 
-**Opening question:** If an agent can directly call a Python function, why use MCP? Expected answers: interoperability between hosts, language-neutral discovery, remote deployment, clear surface boundaries, independent service ownership and reusable tool contracts. Trade-offs include added protocol hops, new attack surfaces, discovery complexity and operational controls.
+**Opening question:** If an agent can directly call a Python function, why use MCP? Because it solves interoperability between hosts, language neutral discovery, remote deployment, clear surface boundaries, independent service ownership and reusable tool contracts. Trade-offs include added protocol hops, new attack surfaces, discovery complexity and operational controls.
 
 ---
 
@@ -115,7 +94,7 @@ flowchart TB
     IAM --> OBS
 ```
 
-This is a **recommended implementation pattern**, not a topology mandated by the protocol. The gateway can centralise transport policy, token validation, allowlists and rate limits, but backend authorisation must still be enforced by each resource owner. No single gateway can substitute for database row-level access controls.
+This is a **recommended implementation pattern**. The gateway can centralise transport policy, token validation, allowlists and rate limits, but backend authorisation must still be enforced by each resource owner. No single gateway can substitute for database row-level access controls.
 
 ### 3.3 The agent-to-MCP sequence
 
@@ -142,7 +121,7 @@ sequenceDiagram
     Host-->>User: Grounded analysis + approval boundary
 ```
 
-In this workshop the data comes from **fictional, in-memory records** rather than live ITSM or knowledge APIs. The design makes it possible to demonstrate MCP without corporate credentials or accidental production changes.
+In this session the data comes from **fictional, in-memory records** rather than live ITSM or knowledge APIs. The design makes it possible to demonstrate MCP without corporate credentials or accidental production changes.
 
 ### 3.4 Design implications
 
@@ -151,9 +130,6 @@ In this workshop the data comes from **fictional, in-memory records** rather tha
 3. A tool schema is an interface contract, not a security boundary. Authorise the executed operation **on the server side**.
 4. Resource content and tool results are **untrusted input** to a language model even if retrieved through an authenticated server.
 5. Tool responses can be larger than the host's context window. Apply result size limits, summarisation and careful paging.
-
-**Knowledge check:** Who decides whether `rollback_deployment()` is permitted? Answer: enterprise policy and/or an appropriately authorised human, enforced in the application and target system. The model merely proposes or requests a tool call.
-
 ---
 
 ## 4. MCP data model: tools, resources, prompts and client capabilities (00:25–00:40)
@@ -224,7 +200,6 @@ Mcp-Name: get_incident
   }
 }
 ```
-
 The result is associated with the same request ID. Under the 2026 revision successful final results carry `resultType: "complete"`. `resultType: "input_required"` indicates the interaction needs another round (see MRTR below). A JSON-RPC **protocol error** is distinct from an application/tool execution error: many tool errors are delivered as a normal `CallToolResult` with `isError: true`, rather than throwing a JSON-RPC exception. Check the client-side `result.is_error` in code.
 
 ### 4.4 Important method families
@@ -255,7 +230,7 @@ MCP also defines optional utilities such as argument completion, progress and ca
 
 **Stdio:** The host launches a subprocess. Each protocol message flows over standard input/output. Best for local trusted tools, desktop integrations, demos and sandboxed single-user workflows. **Never write ordinary logs to stdout** while serving stdio; use stderr or a logging facility. The subprocess may receive only an allowlisted environment; explicitly provide required credentials where needed, rather than assuming it inherits the shell's entire environment.
 
-**Streamable HTTP:** An MCP endpoint receives POST requests over HTTP(S). For `2026-07-28`, the server can return JSON or a request-scoped SSE stream, while longer-lived subscriptions use `subscriptions/listen`. The revision removed the legacy GET stream and protocol-level session IDs. Bind local demos only to `127.0.0.1`; use authenticated TLS and origin validation for any production endpoint. The older HTTP+SSE transport should not be selected for new implementations.
+**Streamable HTTP:** An MCP endpoint receives POST requests over HTTP(S). For `2026-07-28`, the server can return JSON or a request-scoped SSE stream, while longer lived subscriptions use `subscriptions/listen`. The revision removed the legacy GET stream and protocol-level session IDs. Bind local demos only to `127.0.0.1`; use authenticated TLS and origin validation for any production endpoint. The older HTTP+SSE transport should not be selected for new implementations.
 
 | Decision | Stdio | Streamable HTTP |
 |---|---|---|
@@ -298,12 +273,10 @@ An MCP tool may need human input (for example, a choice of region or confirmatio
 
 Modern list/read responses can include TTL and cache-scope hints to reduce repeated catalog loading. A cache must still be partitioned by user/tenant/entitlement as applicable: never reuse a privileged catalog or resource result in the wrong principal context. Notifications can announce changing tool/resource catalogs, while subscriptions are opt-in. A genuinely long-running data export or batch job may fit the Tasks extension: return an operation handle and poll/obtain status rather than block indefinitely; **extension negotiation** is required.
 
-**Discussion:** If a client caches `tools/list` and the server silently adds a new `delete_accounts` tool, is that safe? No. Review tool-catalog changes, enforce an allowlist, and do not grant new write capability merely because discovery returned it.
 
 ---
 
-## 6. Lab setup and project walkthrough (01:00–01:20)
-
+## 6. Lab setup and project walkthrough 
 ### 6.1 Files supplied
 
 ```text
@@ -370,9 +343,8 @@ if __name__ == "__main__":
     mcp.run(transport="stdio")
 ```
 
-This is a **teaching excerpt**; the actual runnable server contains additional tools, real demo records and `--http` handling. Read its full source. The SDK maps function signatures to schema, but the domain layer must validate identifiers and business rules.
 
-### 6.4 Instructor live demo: Inspector
+### 6.4 live demo
 
 The MCP Inspector is useful for viewing tools, schemas, resources and invocation results. With Node.js and the MCP CLI extra installed, one common path is:
 
@@ -385,11 +357,11 @@ If the Inspector is not installed or cannot launch in a locked-down classroom, u
 
 **Expected output:** Three incident tools (`list_incidents`, `get_incident`, `get_incident_metrics`), one static resource (`incident://severity-policy`), one templated incident resource and one prompt (`triage_brief`). Check templates separately from concrete resource listing.
 
-**Two-minute hands-on change:** Add a new read-only tool `get_service_owner(service: str) -> str` with an allowlisted service mapping. Reconnect the client and prove the newly discovered tool is visible. Explain why this change needs a catalog governance review in production.
+Add a new read-only tool `get_service_owner(service: str) -> str` with an allowlisted service mapping. Reconnect the client and prove the newly discovered tool is visible. 
 
 ---
 
-## 7. Lab 2: Build a real MCP client, without an LLM (01:20–01:35)
+## 7. Lab 2: Build a real MCP client, without an LLM
 
 ### 7.1 Why use a protocol client before an agent?
 
@@ -450,7 +422,7 @@ Change the client call to `INC-9999` or a bad severity. Expected: the tool's inp
 
 ---
 
-## 8. Lab 3: Connect agents to MCP servers (01:35–01:50)
+## 8. Lab 3: Connect agents to MCP servers
 
 ### 8.1 Architecture: tools become model-callable capabilities
 
@@ -571,7 +543,9 @@ flowchart TD
 
 Use explicit LangGraph nodes/interrupts when you require durable checkpoints, human authorisation, controlled retries, conditional branching, separation of planning/execution or recovery after failure. MCP only standardises the external tool interface; it does not give you reliable workflow state by itself.
 
-**Participant question:** If a model asks a read-only tool to `get_incident("INC-1001")` three times, what are possible causes? Model uncertainty, tool result truncation, lack of caching, poor instructions, or retry loops. Mitigate through clear schemas, bounded steps, caching where valid and trace inspection.
+**Participant question:** If a model asks a read-only tool to `get_incident("INC-1001")` three times, what are possible causes? 
+
+Model uncertainty, tool result truncation, lack of caching, poor instructions, or retry loops. Mitigate through clear schemas, bounded steps, caching where valid and trace inspection.
 
 ---
 
@@ -653,7 +627,7 @@ A server is **not** enterprise ready merely because the Inspector can invoke it.
 
 ---
 
-## 10. Instructor demo script and exit assessment
+## 10. Demo script and exit assessment
 
 ### Demo scripts, by layer
 
@@ -665,30 +639,20 @@ A server is **not** enterprise ready merely because the Inspector can invoke it.
 **A1.** No. It exposes a protocol-bound capability; an agent orchestrates model decisions and tool calls.
 
 **Q2.** How is a resource different from a tool?  
-**A2.** A resource is an application-selected URI-addressed context object; a tool is an executable function usually eligible for model-directed invocation.
+**A2.** A resource is an application-selected URI-addressed context object; a tool is an executable function usually eligible for model directed invocation.
 
 **Q3.** What changed in the July 2026 protocol revision?  
 **A3.** Stateless per-request core and metadata, `server/discover`, no protocol-level HTTP sessions, modern header routing, MRTR and cache hints, among other changes.
 
 **Q4.** Can the LLM grant itself access to a tenant's incidents by choosing an MCP tool?  
-**A4.** No. Server-side and backend authorisation enforce the requesting principal's access regardless of model intent.
+**A4.** No. Server side and backend authorisation enforce the requesting principal's access regardless of model intent.
 
 ---
 
-## 11. Beyond the 120 minutes: technical extensions for self-study
-
-1. **Explicit state and LangGraph interrupts:** Maintain an action proposal object, pause at approval, resume with a signed decision and execute only on a valid matching scope.
-2. **Remote OAuth/MCP gateway:** Attach a verified audience-bound access token; prove a principal without the required scope receives a denial; validate that same-tenant roles see different data.
-3. **Structured-output contracts:** Define and validate output schemas; compare model-grounded accuracy before and after structured results.
-4. **Cache isolation tests:** Verify resources/catalogs are not reused across principals; test expired TTL and catalog updates.
-5. **Long-running tasks:** Implement the Tasks extension only after verifying client capability support and operational status persistence.
-6. **Protocol compatibility matrix:** Test a modern client against both 2026 and legacy 2025 servers, recording negotiated versions and error semantics.
-7. **Load and failure injection:** Simulate stale resources, malformed arguments, slow upstream services and retryable versus non-retryable errors.
-8. **Evaluations:** Build a fixed benchmark of 20 incident questions to score tool-choice accuracy, evidence citations, hallucination rate, latency and unsafe action proposals.
 
 ## 12. Homework handoff
 
-**Homework title:** *Build a governed Enterprise Incident Copilot using two MCP servers.* Full specification, acceptance tests, deliverable structure and the 100-point grading rubric are in `02_Homework_MCP_Enterprise_Agent.md`. The homework is an **individual hands-on build**, not a slide-only submission.
+**Homework title:** *Build a governed Enterprise Incident Copilot using two MCP servers.* Full specification, acceptance tests, deliverable structure and the 100-point grading rubric are in `02_Homework_MCP_Enterprise_Agent.md`. The homework is an **individual hands-on build**.
 
 **Minimum submission:** two functioning MCP servers, one model-backed agent connecting to both, unit/protocol tests, architecture diagram, security controls and README with reproducible steps. Advanced credit for human approval, strict principal scoping, HTTP auth and adversarial evaluation. **No real production credentials, endpoints or customer records should be used.**
 
@@ -708,5 +672,3 @@ The following primary/maintainer sources informed the workshop. Some examples on
 8. [LangChain source documentation — MCP integration](https://github.com/langchain-ai/langchain/blob/master/openwiki/mcp-integration.md) — multi-server configuration, supported targets and tool mapping.
 9. [OWASP MCP Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/MCP_Security_Cheat_Sheet.html) — prompt injection, poisoning, confused-deputy and defensive design.
 10. [MCP security best practices](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/docs/2026-07-28/tutorials/security/security_best_practices.mdx) — official security considerations.
-
-**Version/currency statement:** Written for the latest official MCP specification found as of 12 November 2026 (`2026-07-28`). Code syntax was cross-checked against published upstream references. Package installation and full MCP/LLM execution were unavailable in the authoring runtime due to restricted package-network access; only Python syntax checks and the dependency-free domain tests were executed locally. Run the included integration tests in a connected Python 3.11+ environment before classroom delivery.

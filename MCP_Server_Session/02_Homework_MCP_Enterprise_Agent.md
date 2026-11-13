@@ -1,13 +1,8 @@
 # Homework: Build a Governed Enterprise Incident Copilot with MCP
-
-**Level:** Intermediate → upper intermediate  
-**Recommended effort:** 3–5 hours outside the workshop  
-**Format:** Individual coding assignment; Python 3.11+; MCP 2026-07-28 baseline  
-**Starting code:** `code/incident_server.py`, `code/runbook_server.py`, `code/agent_multi.py`
-
+  
 ## 1. Business scenario
 
-A fictional enterprise has an Incident Management service and an Operations Knowledge service. Support engineers need an AI assistant to investigate incidents, locate relevant runbooks, recommend diagnostics, and prepare *draft* remediation plans. The assistant must **not execute a production change without explicit, scoped human approval**.
+An enterprise has an Incident Management service and an Operations Knowledge service. Support engineers need an AI assistant to investigate incidents, locate relevant runbooks, recommend diagnostics, and prepare *draft* remediation plans. The assistant must **not execute a production change without explicit, scoped human approval**.
 
 You are the technical architect responsible for implementing the two MCP service boundaries, connecting them to one agent and demonstrating that the agent is useful, auditable and controlled.
 
@@ -28,7 +23,7 @@ flowchart LR
     S2 --> AUD
 ```
 
-**Constraints:** Fictional data only. Use the current official Python SDK v2 (`MCPServer`) and `langchain.mcp.MCPAdapter` or a well-justified equivalent compatible with the 2026 revision. Do not expose open filesystem, shell or unrestricted SQL tools. An OpenAI API key or an equivalent provider's credential is needed only for the agent test.
+**Constraints:** Sample data only. Use the current official Python SDK v2 (`MCPServer`) and `langchain.mcp.MCPAdapter` or a well-justified equivalent compatible with the 2026 revision. Do not expose open filesystem, shell or unrestricted SQL tools. An OpenAI API key or an equivalent provider's credential is needed only for the agent test.
 
 ## 2. Mandatory engineering tasks
 

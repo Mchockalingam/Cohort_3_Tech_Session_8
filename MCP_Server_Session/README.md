@@ -1,6 +1,5 @@
-# Intermediate MCP Server & Agent Integration — 2-Hour Workshop Package
+# MCP Server & Agent Integration
 
-Prepared on **12 November 2026**. The architecture and implementation notes target the official **MCP protocol `2026-07-28`** and Python SDK v2, plus LangChain's **2026 MCPAdapter** integration.
 
 ## Contents
 

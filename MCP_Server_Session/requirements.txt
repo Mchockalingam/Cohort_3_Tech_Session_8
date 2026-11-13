@@ -1,0 +1,5 @@
+# Python 3.11+; use current MCP Python SDK v2 and LangChain MCP adapter API.
+# Unpinned minors are intentional for workshop environments; lock them for deployment.
+mcp>=2.0,<3.0
+langchain[mcp]>=1.0,<2.0
+langchain-openai>=1.0,<2.0
